@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, MessageSquare, Phone, Activity, Menu, X } from 'lucide-react';
+import { Home, MessageSquare, Phone, Activity, Menu, X, LogOut } from 'lucide-react';
 import './Sidebar.css';
 
-const Sidebar = () => {
+const Sidebar = ({ onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleSidebar = () => setIsOpen(!isOpen);
@@ -29,9 +29,13 @@ const Sidebar = () => {
           </NavLink>
         </nav>
         <div className="sidebar-footer">
-          <button className="sos-btn">
+          <a href="tel:18005990019" className="sos-btn">
             <Phone size={18} />
             <span>Emergency SOS</span>
+          </a>
+          <button className="logout-btn" onClick={onLogout}>
+            <LogOut size={18} />
+            <span>Logout</span>
           </button>
         </div>
       </div>

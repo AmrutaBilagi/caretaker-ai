@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Mail, Lock } from 'lucide-react';
+import { Heart, User, Mail, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loginUser } from '../utils/db';
-import './Login.css';
+import { registerUser } from '../utils/db';
+import './Login.css'; // Reusing Login styles for consistency
 
-const Login = ({ onLogin }) => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+const Register = ({ onLogin }) => {
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -20,7 +20,8 @@ const Login = ({ onLogin }) => {
     setError('');
     setLoading(true);
     try {
-      const user = await loginUser(formData.email, formData.password);
+      const user = await registerUser(formData.name, formData.email, formData.password);
+      // Automatically log them in after registration
       onLogin(user);
       navigate('/dashboard');
     } catch (err) {
@@ -41,12 +42,23 @@ const Login = ({ onLogin }) => {
         <div className="icon-wrapper">
           <Heart size={48} color="white" />
         </div>
-        <h1>Welcome back.</h1>
-        <p>A safe space just for you. Log in to continue.</p>
+        <h1>Join our safe space.</h1>
+        <p>Create an account to start your caregiving journey.</p>
         
         {error && <div className="error-message">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="input-group">
+            <User size={20} />
+            <input 
+              type="text" 
+              name="name" 
+              placeholder="Full Name" 
+              value={formData.name}
+              onChange={handleChange}
+              required 
+            />
+          </div>
           <div className="input-group">
             <Mail size={20} />
             <input 
@@ -74,17 +86,16 @@ const Login = ({ onLogin }) => {
             className="btn-primary start-btn" 
             disabled={loading}
           >
-            {loading ? 'Logging in...' : 'Enter Your Space'}
+            {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
         <p className="auth-link">
-          Don't have an account? <Link to="/register">Create one</Link>
+          Already have an account? <Link to="/">Log in</Link>
         </p>
       </motion.div>
     </div>
   );
 };
 
-export default Login;
-
+export default Register;
