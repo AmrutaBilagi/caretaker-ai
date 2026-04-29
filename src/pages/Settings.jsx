@@ -13,6 +13,7 @@ const Settings = ({ user, onLogout, refreshUser }) => {
   const [ec1Phone, setEc1Phone] = useState(user?.preferences?.emergencyContacts?.[0]?.phone || '');
   const [ec2Name, setEc2Name] = useState(user?.preferences?.emergencyContacts?.[1]?.name || '');
   const [ec2Phone, setEc2Phone] = useState(user?.preferences?.emergencyContacts?.[1]?.phone || '');
+  const [geminiApiKey, setGeminiApiKey] = useState(user?.preferences?.geminiApiKey || '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -37,6 +38,7 @@ const Settings = ({ user, onLogout, refreshUser }) => {
         ...user.preferences,
         language,
         caringFor,
+        geminiApiKey,
         emergencyContacts: [
           { name: ec1Name, phone: ec1Phone },
           { name: ec2Name, phone: ec2Phone }
@@ -147,6 +149,21 @@ const Settings = ({ user, onLogout, refreshUser }) => {
                   user?.preferences?.emergencyContacts?.map((c, i) => (
                     <p key={i} style={{margin: 0, color: 'var(--text-secondary)'}}>{c.name}: {c.phone}</p>
                   ))
+                )}
+              </div>
+            </div>
+
+            <div style={{display: 'flex', alignItems: 'flex-start', gap: '1rem'}}>
+              <Lock size={20} color="var(--accent-primary)" style={{marginTop: '4px'}} />
+              <div style={{flex: 1}}>
+                <p style={{margin: 0, fontWeight: 'bold'}}>Gemini API Key (Optional)</p>
+                {isEditing ? (
+                  <div style={{marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                    <input type="password" placeholder="Paste your Gemini API Key here" value={geminiApiKey} onChange={e => setGeminiApiKey(e.target.value)} style={{width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #ccc', background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)'}} />
+                    <small style={{color: 'var(--text-secondary)'}}>Required for advanced emotional AI support in Journal.</small>
+                  </div>
+                ) : (
+                  <p style={{margin: 0, color: 'var(--text-secondary)'}}>{geminiApiKey ? '••••••••••••••••' : 'Not configured'}</p>
                 )}
               </div>
             </div>

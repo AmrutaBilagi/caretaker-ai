@@ -10,6 +10,7 @@ import Settings from './pages/Settings';
 import SelfHelp from './pages/SelfHelp';
 import RecentChats from './pages/RecentChats';
 import Resources from './pages/Resources';
+import Landing from './pages/Landing';
 import Sidebar from './components/Sidebar';
 import { getCurrentUser, logoutUser } from './utils/db';
 import './index.css';
@@ -36,6 +37,10 @@ const AnimatedRoutes = ({ isAuthenticated, user, handleLogin, handleLogout, hand
       <Routes location={location} key={location.pathname}>
         <Route 
           path="/" 
+          element={<PageTransition>{!isAuthenticated ? <Landing /> : <Navigate to="/dashboard" />}</PageTransition>} 
+        />
+        <Route 
+          path="/login" 
           element={<PageTransition>{!isAuthenticated ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" />}</PageTransition>} 
         />
         <Route 

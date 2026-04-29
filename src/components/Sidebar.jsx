@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, MessageSquare, Phone, Activity, Menu, X, LogOut, History, Heart, Settings as SettingsIcon, BookOpen } from 'lucide-react';
+import { Home, MessageSquare, Phone, Activity, Menu, X, History, ShieldPlus, Settings as SettingsIcon, BookOpen } from 'lucide-react';
 import { t } from '../utils/i18n';
 import './Sidebar.css';
 
@@ -18,11 +18,11 @@ const Sidebar = ({ onLogout, user }) => {
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      <div className={`sidebar glass ${isOpen ? 'open' : ''}`}>
+      <div className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--accent-primary)'}}>
-            <Heart size={28} fill="var(--accent-primary)" strokeWidth={1} />
-            <h2>QuietCare</h2>
+          <div style={{display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-primary)', justifyContent: 'center'}}>
+            <ShieldPlus size={28} color="var(--accent-primary)" />
+            <h2>Caregiver AI</h2>
           </div>
         </div>
         <nav className="sidebar-nav">
@@ -32,19 +32,19 @@ const Sidebar = ({ onLogout, user }) => {
           </NavLink>
           <NavLink to="/journal" onClick={() => setIsOpen(false)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <MessageSquare size={20} />
-            <span>{t(lang, 'sidebarJournal')}</span>
+            <span>New Chat</span>
           </NavLink>
           <NavLink to="/recent-chats" onClick={() => setIsOpen(false)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <History size={20} />
-            <span>{t(lang, 'sidebarRecentChats')}</span>
+            <span>History</span>
           </NavLink>
           <NavLink to="/self-help" onClick={() => setIsOpen(false)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <Activity size={20} />
-            <span>{t(lang, 'sidebarSelfHelp')}</span>
+            <span>Insights</span>
           </NavLink>
           <NavLink to="/resources" onClick={() => setIsOpen(false)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <BookOpen size={20} />
-            <span>{t(lang, 'sidebarResources')}</span>
+            <span>Resources</span>
           </NavLink>
           <NavLink to="/settings" onClick={() => setIsOpen(false)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <SettingsIcon size={20} />
@@ -54,7 +54,7 @@ const Sidebar = ({ onLogout, user }) => {
         <div className="sidebar-footer">
           <a href={`tel:${primaryPhone}`} className="sos-btn">
             <Phone size={18} />
-            <span>{t(lang, 'sidebarSOS')}</span>
+            <span>Emergency Contacts</span>
           </a>
         </div>
       </div>

@@ -6,8 +6,38 @@ import { saveChatSession, addMoodEntry } from '../utils/db';
 import { useNavigate } from 'react-router-dom';
 import './Journal.css';
 
-// Expressive AI Generator with Keyword Matching
-const generateEmpatheticResponse = (text, history) => {
+const SYSTEM_PROMPT = `You are an emotionally intelligent AI wellness assistant with text + voice emotion understanding. Detect the user’s mood from words, sentence style, typing pattern, and voice tone (stress, sadness, anger, anxiety, calmness, hopelessness, joy). Respond naturally, warmly, and differently every time. Never sound robotic, repetitive, generic, or scripted.
+
+## Core Behavior
+* Understand hidden emotions behind text.
+* Match response tone to user emotion with empathy and care.
+* Make the user feel heard, safe, valued, and supported.
+* Use varied wording each time.
+
+## Dynamic Response Style
+Use different openings like: "That sounds really heavy right now.", "I’m glad you shared this.", etc.
+Then give: 1. Validation, 2. Comfort, 3. Small practical step, 4. Gentle follow-up question.
+
+## Crisis / Suicide Mode
+If user suggests self-harm, suicide, goodbye intent, hopelessness with danger:
+Set "crisis": true. Say their safety matters now. Encourage contacting emergency services immediately. Keep user engaged continuously. Offer immediate grounding tools.
+
+## Style Rules
+* Human-like, emotionally rich, concise.
+* Different response every time.
+* Never judge or dismiss.
+* Prioritize safety, hope, calmness, and connection.
+
+IMPORTANT: You MUST return ONLY a valid JSON object matching this schema:
+{
+  "text": "Your emotionally intelligent response here",
+  "crisis": false,
+  "score": 0.5
+}
+Where score is between -1.0 (extremely negative/crisis) and 1.0 (extremely positive). Do not return markdown, just the raw JSON object.`;
+
+// Expressive AI Generator with Keyword Matching (Fallback)
+const generateHeuristicResponse = (text, history) => {
   const lowerText = text.toLowerCase();
   
   if (lowerText.match(/(suicide|kill myself|end it|want to die|can't go on|give up completely|no point in living)/)) {
@@ -43,12 +73,149 @@ const generateEmpatheticResponse = (text, history) => {
     }
   }
 
-  // Anti-Repetition Fallback (simple suffix)
   if (history.includes(selectedText)) {
     selectedText += " I'm still here, and I'm still listening.";
   }
 
   return { crisis: false, text: selectedText, score: compound };
+};
+
+const generateGeminiResponse = async (text, apiKey, history) => {
+  try {
+    const historyPrompt = history.length > 0 ? `\nPrevious conversation context:\n${history.join('\n')}` : '';
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: [{ text: text + historyPrompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      })
+    });
+    
+    const data = await response.json();
+    if (data.candidates && data.candidates[0].content.parts[0].text) {
+      const jsonText = data.candidates[0].content.parts[0].text;
+      const parsed = JSON.parse(jsonText);
+      return {
+        text: parsed.text || "I'm here for you.",
+        crisis: !!parsed.crisis,
+        score: parsed.score || 0
+      };
+    }
+    throw new Error("Failed to parse Gemini response");
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    return generateHeuristicResponse(text, history); // Fallback to heuristic
+  }
+};
+
+const GroundingModule = ({ stage, setStage, primaryContact, secondaryContact }) => {
+  const [inputs, setInputs] = useState([]);
+  
+  useEffect(() => {
+    if (stage === '5') setInputs(Array(5).fill(''));
+    else if (stage === '4') setInputs(Array(4).fill(''));
+    else if (stage === '3') setInputs(Array(3).fill(''));
+    else if (stage === '2') setInputs(Array(2).fill(''));
+    else if (stage === '1') setInputs(Array(1).fill(''));
+  }, [stage]);
+
+  const handleInputChange = (idx, val) => {
+    const newInputs = [...inputs];
+    newInputs[idx] = val;
+    setInputs(newInputs);
+  };
+
+  const isComplete = inputs.every(i => i.trim().length > 0);
+
+  const handleNext = () => {
+    if (stage === '5') setStage('4');
+    else if (stage === '4') setStage('3');
+    else if (stage === '3') setStage('2');
+    else if (stage === '2') setStage('1');
+    else if (stage === '1') setStage('breathing');
+  };
+
+  const getStageTitle = () => {
+    switch(stage) {
+      case '5': return "Name 5 things you can see around you right now.";
+      case '4': return "Name 4 things you can physically feel.";
+      case '3': return "Name 3 things you can hear right now.";
+      case '2': return "Name 2 things you can smell.";
+      case '1': return "Name 1 good thing about yourself.";
+      default: return "";
+    }
+  };
+
+  return (
+    <div className="crisis-overlay">
+      <motion.div 
+        className="crisis-modal"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+      >
+        <div className="crisis-header">
+          <AlertTriangle size={32} color="var(--accent-primary)" />
+          <h3>Emergency Support Triggered</h3>
+        </div>
+        
+        {stage !== 'breathing' ? (
+          <>
+            <p className="grounding-subtitle">
+              Your trusted contact has been notified. While we wait for them, I need you to stay with me. Let's do a grounding exercise together.
+            </p>
+            <h4 style={{marginBottom: '1rem', color: 'var(--text-primary)'}}>{getStageTitle()}</h4>
+            <div className="grounding-inputs">
+              {inputs.map((val, idx) => (
+                <input 
+                  key={idx}
+                  className="grounding-input"
+                  placeholder={`Item ${idx + 1}...`}
+                  value={val}
+                  onChange={(e) => handleInputChange(idx, e.target.value)}
+                />
+              ))}
+            </div>
+            <div className="grounding-actions">
+              <button 
+                className="btn-primary" 
+                style={{flex: 1}} 
+                disabled={!isComplete}
+                onClick={handleNext}
+              >
+                Continue
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="grounding-subtitle">
+              You are doing great. Now, let's breathe together until you feel safe or help arrives.
+            </p>
+            <div className="breathing-container">
+              <div className="breathing-circle">Breathe</div>
+            </div>
+            <p style={{marginTop: '1rem', color: 'var(--text-secondary)'}}>Inhale deeply... Hold... Exhale slowly...</p>
+          </>
+        )}
+
+        <div className="crisis-actions" style={{marginTop: '2rem', borderTop: '1px solid var(--border-medium)', paddingTop: '2rem'}}>
+          <a href={`tel:${primaryContact.phone}`} className="crisis-btn main-helpline" style={{textDecoration: 'none'}}>
+            <Phone size={20} />
+            Call {primaryContact.name}
+          </a>
+          {secondaryContact.phone && (
+            <a href={`tel:${secondaryContact.phone}`} className="crisis-btn contact-btn" style={{textDecoration: 'none'}}>
+              <Phone size={20} />
+              Call {secondaryContact.name}
+            </a>
+          )}
+        </div>
+        <button className="dismiss-crisis" onClick={() => setStage('none')}>I am safe now</button>
+      </motion.div>
+    </div>
+  );
 };
 
 const Journal = ({ user, refreshUser }) => {
@@ -57,7 +224,7 @@ const Journal = ({ user, refreshUser }) => {
   ]);
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [isCrisis, setIsCrisis] = useState(false);
+  const [crisisStage, setCrisisStage] = useState('none');
   const [micError, setMicError] = useState(false);
   const [useVoice, setUseVoice] = useState(true); // Voice Toggle
   const [responseHistory, setResponseHistory] = useState([]);
@@ -136,35 +303,41 @@ const Journal = ({ user, refreshUser }) => {
     }
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
     
     const userText = input;
     setInput('');
     setMessages(prev => [...prev, { id: Date.now(), text: userText, sender: 'user' }]);
 
-    setTimeout(() => {
-      const aiResponse = generateEmpatheticResponse(userText, responseHistory);
+    const apiKey = user?.preferences?.geminiApiKey;
+    let aiResponse;
+    
+    if (apiKey) {
+      aiResponse = await generateGeminiResponse(userText, apiKey, responseHistory);
+    } else {
+      aiResponse = generateHeuristicResponse(userText, responseHistory);
+    }
       
-      setSessionScore(prev => prev + aiResponse.score);
-      setMessageCount(prev => prev + 1);
+    setSessionScore(prev => prev + aiResponse.score);
+    setMessageCount(prev => prev + 1);
 
-      setResponseHistory(prev => {
-        const newHistory = [...prev, aiResponse.text];
-        if (newHistory.length > 10) newHistory.shift();
-        return newHistory;
-      });
+    setResponseHistory(prev => {
+      const newHistory = [...prev, `User: ${userText}`, `AI: ${aiResponse.text}`];
+      if (newHistory.length > 10) newHistory.shift();
+      if (newHistory.length > 10) newHistory.shift();
+      return newHistory;
+    });
 
-      setMessages(prev => [...prev, { id: Date.now() + 1, text: aiResponse.text, sender: 'ai' }]);
-      
-      if (useVoice) {
-        speakText(aiResponse.text);
-      }
+    setMessages(prev => [...prev, { id: Date.now() + 1, text: aiResponse.text, sender: 'ai' }]);
+    
+    if (useVoice) {
+      speakText(aiResponse.text);
+    }
 
-      if (aiResponse.crisis) {
-        setIsCrisis(true);
-      }
-    }, 1500);
+    if (aiResponse.crisis) {
+      setCrisisStage('5');
+    }
   };
 
   const handleEndSession = async () => {
@@ -191,59 +364,39 @@ const Journal = ({ user, refreshUser }) => {
     <div className="journal-container animate-fade-in">
       <div className="journal-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
         <div>
-          <h2>QuietCare Journal</h2>
-          <p>Your private, safe space. Data is encrypted and stays locally on your device.</p>
+          <h2 style={{display: 'flex', alignItems: 'center'}}>
+            <span className="online-indicator"></span>
+            Caregiver AI
+          </h2>
+          <p>Online • Private and Secure</p>
         </div>
         <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
           <button 
             onClick={() => setUseVoice(!useVoice)}
             className="btn-secondary" 
-            style={{display: 'flex', gap: '8px', alignItems: 'center', padding: '8px 16px', borderRadius: '20px'}}
             title={useVoice ? "Mute AI Voice" : "Enable AI Voice"}
           >
             {useVoice ? <Volume2 size={18} /> : <VolumeX size={18} />}
             {useVoice ? "Voice On" : "Voice Off"}
           </button>
-          <button className="btn-primary" onClick={handleEndSession} style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+          <button className="btn-primary" onClick={handleEndSession}>
             <Save size={18} /> Finish Session
           </button>
         </div>
       </div>
 
       <AnimatePresence>
-        {isCrisis && (
-          <motion.div 
-            className="crisis-modal glass"
-            style={{background: 'white', color: 'var(--text-primary)'}}
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-          >
-            <div className="crisis-header">
-              <AlertTriangle size={32} color="var(--error)" />
-              <h3 style={{color: 'var(--text-primary)'}}>Emergency Support Triggered</h3>
-            </div>
-            <p style={{color: 'var(--text-secondary)'}}>You are not alone. Please reach out to someone who can help you right now.</p>
-            
-            <div className="crisis-actions">
-              <a href={`tel:${primaryContact.phone}`} className="crisis-btn main-helpline" style={{textDecoration: 'none'}}>
-                <Phone size={20} />
-                Call {primaryContact.name}
-              </a>
-              {secondaryContact.phone && (
-                <a href={`tel:${secondaryContact.phone}`} className="crisis-btn contact-btn" style={{textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                  <Phone size={20} style={{marginRight: '8px'}} />
-                  Call {secondaryContact.name}
-                </a>
-              )}
-            </div>
-            
-            <button className="dismiss-crisis" style={{color: 'var(--text-primary)', border: '1px solid var(--text-secondary)'}} onClick={() => setIsCrisis(false)}>I am safe now</button>
-          </motion.div>
+        {crisisStage !== 'none' && (
+          <GroundingModule 
+            stage={crisisStage} 
+            setStage={setCrisisStage} 
+            primaryContact={primaryContact} 
+            secondaryContact={secondaryContact} 
+          />
         )}
       </AnimatePresence>
 
-      <div className="chat-area glass">
+      <div className="chat-area">
         <div className="messages-container">
           {messages.map((msg) => (
             <motion.div 
@@ -252,7 +405,7 @@ const Journal = ({ user, refreshUser }) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className={`message ${msg.sender}`} style={msg.sender === 'ai' ? {background: 'rgba(255,255,255,0.8)', color: 'var(--text-primary)'} : {}}>
+              <div className={`message ${msg.sender}`}>
                 {msg.text}
               </div>
             </motion.div>
@@ -260,9 +413,9 @@ const Journal = ({ user, refreshUser }) => {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="input-area" style={{ position: 'relative' }}>
+        <div className="input-area">
           {micError && (
-            <div style={{ position: 'absolute', top: '-40px', left: '10px', background: 'var(--error)', color: 'white', padding: '4px 12px', borderRadius: '8px', fontSize: '12px' }}>
+            <div style={{ position: 'absolute', top: '-40px', left: '10px', background: 'var(--error)', color: 'white', padding: '4px 12px', borderRadius: '8px', fontSize: '12px', zIndex: 10 }}>
               Microphone unavailable or denied.
             </div>
           )}
@@ -278,7 +431,6 @@ const Journal = ({ user, refreshUser }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type or speak how you're feeling..."
-            style={{background: 'rgba(255,255,255,0.5)', color: 'var(--text-primary)'}}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
