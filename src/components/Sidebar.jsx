@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, MessageSquare, Phone, Activity, Menu, X, LogOut } from 'lucide-react';
+import { Home, MessageSquare, Phone, Activity, Menu, X, LogOut, History, Heart, Settings as SettingsIcon, BookOpen } from 'lucide-react';
+import { t } from '../utils/i18n';
 import './Sidebar.css';
 
-const Sidebar = ({ onLogout }) => {
+const Sidebar = ({ onLogout, user }) => {
   const [isOpen, setIsOpen] = useState(false);
-
+  const lang = user?.preferences?.language || 'en';
   const toggleSidebar = () => setIsOpen(!isOpen);
+
+  // The primary emergency contact if available, fallback to KIRAN helpline
+  const primaryPhone = user?.preferences?.emergencyContacts?.[0]?.phone || "18005990019";
 
   return (
     <>
@@ -16,27 +20,42 @@ const Sidebar = ({ onLogout }) => {
 
       <div className={`sidebar glass ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <h2>Caregiver AI</h2>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--accent-primary)'}}>
+            <Heart size={28} fill="var(--accent-primary)" strokeWidth={1} />
+            <h2>QuietCare</h2>
+          </div>
         </div>
         <nav className="sidebar-nav">
           <NavLink to="/dashboard" onClick={() => setIsOpen(false)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <Home size={20} />
-            <span>Dashboard</span>
+            <span>{t(lang, 'sidebarDashboard')}</span>
           </NavLink>
           <NavLink to="/journal" onClick={() => setIsOpen(false)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <MessageSquare size={20} />
-            <span>Invisible Journal</span>
+            <span>{t(lang, 'sidebarJournal')}</span>
+          </NavLink>
+          <NavLink to="/recent-chats" onClick={() => setIsOpen(false)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+            <History size={20} />
+            <span>{t(lang, 'sidebarRecentChats')}</span>
+          </NavLink>
+          <NavLink to="/self-help" onClick={() => setIsOpen(false)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+            <Activity size={20} />
+            <span>{t(lang, 'sidebarSelfHelp')}</span>
+          </NavLink>
+          <NavLink to="/resources" onClick={() => setIsOpen(false)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+            <BookOpen size={20} />
+            <span>{t(lang, 'sidebarResources')}</span>
+          </NavLink>
+          <NavLink to="/settings" onClick={() => setIsOpen(false)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+            <SettingsIcon size={20} />
+            <span>{t(lang, 'sidebarSettings')}</span>
           </NavLink>
         </nav>
         <div className="sidebar-footer">
-          <a href="tel:18005990019" className="sos-btn">
+          <a href={`tel:${primaryPhone}`} className="sos-btn">
             <Phone size={18} />
-            <span>Emergency SOS</span>
+            <span>{t(lang, 'sidebarSOS')}</span>
           </a>
-          <button className="logout-btn" onClick={onLogout}>
-            <LogOut size={18} />
-            <span>Logout</span>
-          </button>
         </div>
       </div>
     </>
@@ -44,3 +63,4 @@ const Sidebar = ({ onLogout }) => {
 };
 
 export default Sidebar;
+

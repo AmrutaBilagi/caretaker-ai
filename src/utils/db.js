@@ -34,16 +34,24 @@ export const registerUser = async (name, email, password) => {
           email,
           password, // In a real app, hash this!
           createdAt: new Date().toISOString(),
-          moodHistory: []
+          moodHistory: [],
+          chatHistory: [],
+          onboardingCompleted: false,
+          preferences: {
+            language: 'en',
+            caringFor: '',
+            hobbies: [],
+            emergencyContacts: []
+          }
         };
 
         users.push(newUser);
         localStorage.setItem(USERS_KEY, JSON.stringify(users));
-        resolve({ id: newUser.id, name: newUser.name, email: newUser.email });
+        resolve(newUser);
       } catch (err) {
         reject(new Error('Failed to register user.'));
       }
-    }, 500); // Simulate network delay
+    }, 500);
   });
 };
 
@@ -55,16 +63,15 @@ export const loginUser = async (email, password) => {
         const user = users.find(u => u.email === email && u.password === password);
         
         if (user) {
-          const sessionUser = { id: user.id, name: user.name, email: user.email };
-          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(sessionUser));
-          resolve(sessionUser);
+          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+          resolve(user);
         } else {
           reject(new Error('Invalid email or password.'));
         }
       } catch (err) {
         reject(new Error('Failed to login.'));
       }
-    }, 500); // Simulate network delay
+    }, 500);
   });
 };
 
@@ -76,3 +83,73 @@ export const getCurrentUser = () => {
   const userStr = localStorage.getItem(CURRENT_USER_KEY);
   return userStr ? JSON.parse(userStr) : null;
 };
+
+// Update user profile (used for onboarding)
+export const updateUserProfile = async (userId, updates) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const users = JSON.parse(localStorage.getItem(USERS_KEY));
+      const userIndex = users.findIndex(u => u.id === userId);
+      
+      if (userIndex !== -1) {
+        users[userIndex] = { ...users[userIndex], ...updates };
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+        
+        // Update session if it's the current user
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.id === userId) {
+          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(users[userIndex]));
+        }
+        resolve(users[userIndex]);
+      } else {
+        reject(new Error('User not found.'));
+      }
+    } catch (err) {
+      reject(new Error('Failed to update profile.'));
+    }
+  });
+};
+
+// Add mood entry for graph
+export const addMoodEntry = async (userId, moodValue) => {
+  const users = JSON.parse(localStorage.getItem(USERS_KEY));
+  const userIndex = users.findIndex(u => u.id === userId);
+  
+  if (userIndex !== -1) {
+    const entry = {
+      date: new Date().toISOString(),
+      mood: moodValue // 1 to 5 scale
+    };
+    if (!users[userIndex].moodHistory) users[userIndex].moodHistory = [];
+    users[userIndex].moodHistory.push(entry);
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.id === userId) {
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(users[userIndex]));
+    }
+  }
+};
+
+// Save chat session
+export const saveChatSession = async (userId, messages) => {
+  const users = JSON.parse(localStorage.getItem(USERS_KEY));
+  const userIndex = users.findIndex(u => u.id === userId);
+  
+  if (userIndex !== -1) {
+    const session = {
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      messages
+    };
+    if (!users[userIndex].chatHistory) users[userIndex].chatHistory = [];
+    users[userIndex].chatHistory.push(session);
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.id === userId) {
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(users[userIndex]));
+    }
+  }
+};
+
