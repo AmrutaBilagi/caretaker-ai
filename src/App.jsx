@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { LanguageProvider } from './context/LanguageContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -117,21 +118,23 @@ function App() {
   if (loading) return null;
 
   return (
-    <Router>
-      <div className="app-container">
-        {isAuthenticated && user?.onboardingCompleted && <Sidebar onLogout={handleLogout} user={user} />}
-        <main className="content-area">
-          <AnimatedRoutes 
-            isAuthenticated={isAuthenticated} 
-            user={user} 
-            handleLogin={handleLogin} 
-            handleLogout={handleLogout} 
-            handleOnboardingComplete={handleOnboardingComplete}
-            refreshUser={refreshUser}
-          />
-        </main>
-      </div>
-    </Router>
+    <LanguageProvider>
+      <Router>
+        <div className="app-container">
+          {isAuthenticated && user?.onboardingCompleted && <Sidebar onLogout={handleLogout} user={user} />}
+          <main className="content-area">
+            <AnimatedRoutes 
+              isAuthenticated={isAuthenticated} 
+              user={user} 
+              handleLogin={handleLogin} 
+              handleLogout={handleLogout} 
+              handleOnboardingComplete={handleOnboardingComplete}
+              refreshUser={refreshUser}
+            />
+          </main>
+        </div>
+      </Router>
+    </LanguageProvider>
   );
 }
 

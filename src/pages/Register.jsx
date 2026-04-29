@@ -4,7 +4,7 @@ import { Heart, User, Mail, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { registerUser } from '../utils/db';
 import { t } from '../utils/i18n';
-import './Login.css'; 
+import './Login.css';
 
 const Register = ({ onLogin }) => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
@@ -25,7 +25,7 @@ const Register = ({ onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -50,7 +50,7 @@ const Register = ({ onLogin }) => {
 
   return (
     <div className="login-container">
-      <motion.div 
+      <motion.div
         className="login-card glass"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -61,57 +61,57 @@ const Register = ({ onLogin }) => {
         </div>
         <h1>{t(lang, 'registerTitle')}</h1>
         <p>{t(lang, 'registerSubtitle')}</p>
-        
+
         {error && <div className="error-message">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="input-group">
             <User size={20} />
-            <input 
-              type="text" 
-              name="name" 
-              placeholder={t(lang, 'namePlaceholder')} 
+            <input
+              type="text"
+              name="name"
+              placeholder={t(lang, 'namePlaceholder')}
               value={formData.name}
               onChange={handleChange}
-              required 
+              required
             />
           </div>
           <div className="input-group">
             <Mail size={20} />
-            <input 
-              type="email" 
-              name="email" 
-              placeholder={t(lang, 'emailPlaceholder')} 
+            <input
+              type="email"
+              name="email"
+              placeholder={t(lang, 'emailPlaceholder')}
               value={formData.email}
               onChange={handleChange}
-              required 
+              required
             />
           </div>
           <div className="input-group">
             <Lock size={20} />
-            <input 
-              type="password" 
-              name="password" 
-              placeholder={t(lang, 'passwordPlaceholder')} 
+            <input
+              type="password"
+              name="password"
+              placeholder={t(lang, 'passwordPlaceholder')}
               value={formData.password}
               onChange={handleChange}
-              required 
+              required
             />
           </div>
           <div className="input-group">
             <Lock size={20} />
-            <input 
-              type="password" 
-              name="confirmPassword" 
-              placeholder={t(lang, 'confirmPasswordPlaceholder')} 
+            <input
+              type="password"
+              name="confirmPassword"
+              placeholder={t(lang, 'confirmPasswordPlaceholder')}
               value={formData.confirmPassword}
               onChange={handleChange}
-              required 
+              required
             />
           </div>
-          <button 
-            type="submit" 
-            className="btn-primary start-btn" 
+          <button
+            type="submit"
+            className="btn-primary start-btn"
             disabled={loading}
           >
             {loading ? '...' : t(lang, 'registerBtn')}
@@ -127,4 +127,3 @@ const Register = ({ onLogin }) => {
 };
 
 export default Register;
-

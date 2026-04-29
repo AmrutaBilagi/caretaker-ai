@@ -23,9 +23,16 @@ export const registerUser = async (name, email, password) => {
         const users = JSON.parse(localStorage.getItem(USERS_KEY));
         
         // Check if user exists
-        if (users.find(u => u.email === email)) {
-          reject(new Error('User with this email already exists.'));
-          return;
+        const existingUser = users.find(u => u.email === email);
+        if (existingUser) {
+          if (existingUser.password === password) {
+            localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(existingUser));
+            resolve(existingUser);
+            return;
+          } else {
+            reject(new Error('User with this email already exists.'));
+            return;
+          }
         }
 
         const newUser = {

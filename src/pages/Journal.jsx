@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Send, Phone, AlertTriangle, Save, Volume2, VolumeX } from 'lucide-react';
 import vader from 'vader-sentiment';
 import { saveChatSession, addMoodEntry } from '../utils/db';
+import { translateToSelectedLanguage, translateToEnglish } from '../utils/translations';
+import { useLanguage } from '../context/LanguageContext';
+import StayWithMeMode from '../components/StayWithMeMode';
 import { useNavigate } from 'react-router-dom';
 import './Journal.css';
 
@@ -110,115 +113,10 @@ const generateGeminiResponse = async (text, apiKey, history) => {
   }
 };
 
-const GroundingModule = ({ stage, setStage, primaryContact, secondaryContact }) => {
-  const [inputs, setInputs] = useState([]);
-  
-  useEffect(() => {
-    if (stage === '5') setInputs(Array(5).fill(''));
-    else if (stage === '4') setInputs(Array(4).fill(''));
-    else if (stage === '3') setInputs(Array(3).fill(''));
-    else if (stage === '2') setInputs(Array(2).fill(''));
-    else if (stage === '1') setInputs(Array(1).fill(''));
-  }, [stage]);
-
-  const handleInputChange = (idx, val) => {
-    const newInputs = [...inputs];
-    newInputs[idx] = val;
-    setInputs(newInputs);
-  };
-
-  const isComplete = inputs.every(i => i.trim().length > 0);
-
-  const handleNext = () => {
-    if (stage === '5') setStage('4');
-    else if (stage === '4') setStage('3');
-    else if (stage === '3') setStage('2');
-    else if (stage === '2') setStage('1');
-    else if (stage === '1') setStage('breathing');
-  };
-
-  const getStageTitle = () => {
-    switch(stage) {
-      case '5': return "Name 5 things you can see around you right now.";
-      case '4': return "Name 4 things you can physically feel.";
-      case '3': return "Name 3 things you can hear right now.";
-      case '2': return "Name 2 things you can smell.";
-      case '1': return "Name 1 good thing about yourself.";
-      default: return "";
-    }
-  };
-
-  return (
-    <div className="crisis-overlay">
-      <motion.div 
-        className="crisis-modal"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-      >
-        <div className="crisis-header">
-          <AlertTriangle size={32} color="var(--accent-primary)" />
-          <h3>Emergency Support Triggered</h3>
-        </div>
-        
-        {stage !== 'breathing' ? (
-          <>
-            <p className="grounding-subtitle">
-              Your trusted contact has been notified. While we wait for them, I need you to stay with me. Let's do a grounding exercise together.
-            </p>
-            <h4 style={{marginBottom: '1rem', color: 'var(--text-primary)'}}>{getStageTitle()}</h4>
-            <div className="grounding-inputs">
-              {inputs.map((val, idx) => (
-                <input 
-                  key={idx}
-                  className="grounding-input"
-                  placeholder={`Item ${idx + 1}...`}
-                  value={val}
-                  onChange={(e) => handleInputChange(idx, e.target.value)}
-                />
-              ))}
-            </div>
-            <div className="grounding-actions">
-              <button 
-                className="btn-primary" 
-                style={{flex: 1}} 
-                disabled={!isComplete}
-                onClick={handleNext}
-              >
-                Continue
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="grounding-subtitle">
-              You are doing great. Now, let's breathe together until you feel safe or help arrives.
-            </p>
-            <div className="breathing-container">
-              <div className="breathing-circle">Breathe</div>
-            </div>
-            <p style={{marginTop: '1rem', color: 'var(--text-secondary)'}}>Inhale deeply... Hold... Exhale slowly...</p>
-          </>
-        )}
-
-        <div className="crisis-actions" style={{marginTop: '2rem', borderTop: '1px solid var(--border-medium)', paddingTop: '2rem'}}>
-          <a href={`tel:${primaryContact.phone}`} className="crisis-btn main-helpline" style={{textDecoration: 'none'}}>
-            <Phone size={20} />
-            Call {primaryContact.name}
-          </a>
-          {secondaryContact.phone && (
-            <a href={`tel:${secondaryContact.phone}`} className="crisis-btn contact-btn" style={{textDecoration: 'none'}}>
-              <Phone size={20} />
-              Call {secondaryContact.name}
-            </a>
-          )}
-        </div>
-        <button className="dismiss-crisis" onClick={() => setStage('none')}>I am safe now</button>
-      </motion.div>
-    </div>
-  );
-};
+// Removed GroundingModule
 
 const Journal = ({ user, refreshUser }) => {
+  const { selectedLanguage } = useLanguage();
   const [messages, setMessages] = useState([
     { id: 1, text: "I'm here to listen. How was your day? You can type or use your voice.", sender: 'ai' }
   ]);
@@ -295,8 +193,13 @@ const Journal = ({ user, refreshUser }) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
+      const langCode = selectedLanguage === 'hi' ? 'hi-IN' : selectedLanguage === 'kn' ? 'kn-IN' : 'en-IN';
+      utterance.lang = langCode;
+      
       const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha'));
+      let preferredVoice = voices.find(v => v.lang.startsWith(langCode) && (v.name.includes('Female') || v.name.includes('Samantha')));
+      if (!preferredVoice) preferredVoice = voices.find(v => v.lang.startsWith(langCode));
+      if (!preferredVoice) preferredVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha'));
       if (preferredVoice) utterance.voice = preferredVoice;
       utterance.rate = 0.9; 
       window.speechSynthesis.speak(utterance);
@@ -313,10 +216,13 @@ const Journal = ({ user, refreshUser }) => {
     const apiKey = user?.preferences?.geminiApiKey;
     let aiResponse;
     
+    // Translate the user's input to English so the bot can understand it and match heuristic/crisis keywords
+    const englishUserText = await translateToEnglish(userText, selectedLanguage, apiKey);
+    
     if (apiKey) {
-      aiResponse = await generateGeminiResponse(userText, apiKey, responseHistory);
+      aiResponse = await generateGeminiResponse(englishUserText, apiKey, responseHistory);
     } else {
-      aiResponse = generateHeuristicResponse(userText, responseHistory);
+      aiResponse = generateHeuristicResponse(englishUserText, responseHistory);
     }
       
     setSessionScore(prev => prev + aiResponse.score);
@@ -329,10 +235,13 @@ const Journal = ({ user, refreshUser }) => {
       return newHistory;
     });
 
-    setMessages(prev => [...prev, { id: Date.now() + 1, text: aiResponse.text, sender: 'ai' }]);
+    const translatedText = await translateToSelectedLanguage(aiResponse.text, selectedLanguage, apiKey);
+    aiResponse.text = translatedText;
+
+    setMessages(prev => [...prev, { id: Date.now() + 1, text: translatedText, sender: 'ai' }]);
     
     if (useVoice) {
-      speakText(aiResponse.text);
+      speakText(translatedText);
     }
 
     if (aiResponse.crisis) {
@@ -387,11 +296,9 @@ const Journal = ({ user, refreshUser }) => {
 
       <AnimatePresence>
         {crisisStage !== 'none' && (
-          <GroundingModule 
-            stage={crisisStage} 
-            setStage={setCrisisStage} 
-            primaryContact={primaryContact} 
-            secondaryContact={secondaryContact} 
+          <StayWithMeMode 
+            user={user} 
+            onExit={() => setCrisisStage('none')} 
           />
         )}
       </AnimatePresence>

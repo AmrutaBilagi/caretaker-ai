@@ -181,6 +181,54 @@ export const translations = {
   }
 };
 
-export const t = (lang, key) => {
-  return translations[lang]?.[key] || translations['en'][key] || key;
+export const getText = (key, language) => {
+  return translations[language]?.[key] || translations['en'][key] || key;
+};
+
+export const translateToSelectedLanguage = async (text, language, apiKey) => {
+  if (language === 'en' || !apiKey) return text;
+  
+  try {
+    const prompt = `Translate the following text into ${language === 'hi' ? 'Hindi' : 'Kannada'}. Keep the emotional tone empathetic and natural. Text: "${text}"`;
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+      })
+    });
+    const data = await response.json();
+    if (data.candidates && data.candidates[0].content.parts[0].text) {
+      return data.candidates[0].content.parts[0].text.trim();
+    }
+    return text;
+  } catch (error) {
+    console.error('Translation error:', error);
+    return text;
+  }
+};
+
+export const translateToEnglish = async (text, language, apiKey) => {
+  if (language === 'en' || !apiKey) return text;
+  
+  try {
+    const prompt = `Translate the following ${language === 'hi' ? 'Hindi' : 'Kannada'} text into English. Keep the meaning exact. Text: "${text}"`;
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+      })
+    });
+    const data = await response.json();
+    if (data.candidates && data.candidates[0].content.parts[0].text) {
+      return data.candidates[0].content.parts[0].text.trim();
+    }
+    return text;
+  } catch (error) {
+    console.error('Translation to English error:', error);
+    return text;
+  }
 };
