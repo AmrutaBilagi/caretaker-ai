@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { LogOut, User, Globe, Heart, Phone, Edit2, Save, X, Lock } from 'lucide-react';
+import { LogOut, User, Globe, Heart, Phone, Edit2, Save, X, Lock, Camera } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { updateUserProfile } from '../utils/db';
+import { useLanguage } from '../context/LanguageContext';
 import './Dashboard.css';
 
 const Settings = ({ user, onLogout, refreshUser }) => {
+  const { setLanguage: setGlobalLanguage } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [language, setLanguage] = useState(user?.preferences?.language || 'en');
   const [caringFor, setCaringFor] = useState(user?.preferences?.caringFor || '');
@@ -14,6 +16,8 @@ const Settings = ({ user, onLogout, refreshUser }) => {
   const [ec2Name, setEc2Name] = useState(user?.preferences?.emergencyContacts?.[1]?.name || '');
   const [ec2Phone, setEc2Phone] = useState(user?.preferences?.emergencyContacts?.[1]?.phone || '');
   const [geminiApiKey, setGeminiApiKey] = useState(user?.preferences?.geminiApiKey || '');
+  const [faceEmotionDetectionEnabled, setFaceEmotionDetectionEnabled] = useState(user?.preferences?.faceEmotionDetectionEnabled || false);
+  const [autoStartMultimodal, setAutoStartMultimodal] = useState(user?.preferences?.autoStartMultimodal || false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -39,6 +43,8 @@ const Settings = ({ user, onLogout, refreshUser }) => {
         language,
         caringFor,
         geminiApiKey,
+        faceEmotionDetectionEnabled,
+        autoStartMultimodal,
         emergencyContacts: [
           { name: ec1Name, phone: ec1Phone },
           { name: ec2Name, phone: ec2Phone }
@@ -51,6 +57,7 @@ const Settings = ({ user, onLogout, refreshUser }) => {
     }
 
     await updateUserProfile(user.id, updatedData);
+    setGlobalLanguage(language);
     if (refreshUser) refreshUser();
     setIsEditing(false);
     setNewPassword('');
@@ -164,6 +171,42 @@ const Settings = ({ user, onLogout, refreshUser }) => {
                   </div>
                 ) : (
                   <p style={{margin: 0, color: 'var(--text-secondary)'}}>{geminiApiKey ? '••••••••••••••••' : 'Not configured'}</p>
+                )}
+              </div>
+            </div>
+
+            <div style={{display: 'flex', alignItems: 'flex-start', gap: '1rem'}}>
+              <Camera size={20} color="var(--accent-primary)" style={{marginTop: '4px'}} />
+              <div style={{flex: 1}}>
+                <p style={{margin: 0, fontWeight: 'bold'}}>Multimodal Empathy (Face & Voice Analytics)</p>
+                {isEditing ? (
+                  <div style={{marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                      <input 
+                        type="checkbox" 
+                        id="faceEnabled"
+                        checked={faceEmotionDetectionEnabled} 
+                        onChange={e => setFaceEmotionDetectionEnabled(e.target.checked)} 
+                        style={{width: '18px', height: '18px'}} 
+                      />
+                      <label htmlFor="faceEnabled" style={{color: 'var(--text-primary)'}}>Enable Analytics (Requires Camera/Mic)</label>
+                    </div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                      <input 
+                        type="checkbox" 
+                        id="autoStart"
+                        checked={autoStartMultimodal} 
+                        onChange={e => setAutoStartMultimodal(e.target.checked)} 
+                        style={{width: '18px', height: '18px'}} 
+                      />
+                      <label htmlFor="autoStart" style={{color: 'var(--text-primary)'}}>Auto-Start Multimodal in Journal</label>
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{margin: 0, color: 'var(--text-secondary)'}}>
+                    {faceEmotionDetectionEnabled ? 'Enabled' : 'Disabled'} 
+                    {autoStartMultimodal ? ' (Auto-Start)' : ''}
+                  </p>
                 )}
               </div>
             </div>

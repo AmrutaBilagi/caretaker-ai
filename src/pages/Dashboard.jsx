@@ -95,7 +95,10 @@ const Dashboard = ({ user }) => {
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          <p className="chart-insight" style={{fontSize: '0.85rem', marginTop: '1rem'}}>Graph updates based on your recent journal entries' sentiment.</p>
+          <p className="chart-insight" style={{fontSize: '0.85rem', marginTop: '1rem'}}>
+            Graph updates based on your recent journal entries' sentiment.
+            {user?.preferences?.faceEmotionDetectionEnabled && <span style={{color: 'var(--accent-primary)', display: 'block', marginTop: '4px'}}>✨ Includes multimodal face and voice analytics.</span>}
+          </p>
         </motion.div>
 
         <div className="resources-section glass">

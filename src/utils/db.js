@@ -118,14 +118,15 @@ export const updateUserProfile = async (userId, updates) => {
 };
 
 // Add mood entry for graph
-export const addMoodEntry = async (userId, moodValue) => {
+export const addMoodEntry = async (userId, moodValue, metadata = {}) => {
   const users = JSON.parse(localStorage.getItem(USERS_KEY));
   const userIndex = users.findIndex(u => u.id === userId);
   
   if (userIndex !== -1) {
     const entry = {
       date: new Date().toISOString(),
-      mood: moodValue // 1 to 5 scale
+      mood: moodValue, // 1 to 5 scale
+      ...metadata
     };
     if (!users[userIndex].moodHistory) users[userIndex].moodHistory = [];
     users[userIndex].moodHistory.push(entry);
@@ -139,7 +140,7 @@ export const addMoodEntry = async (userId, moodValue) => {
 };
 
 // Save chat session
-export const saveChatSession = async (userId, messages) => {
+export const saveChatSession = async (userId, messages, metadata = {}) => {
   const users = JSON.parse(localStorage.getItem(USERS_KEY));
   const userIndex = users.findIndex(u => u.id === userId);
   
@@ -147,7 +148,8 @@ export const saveChatSession = async (userId, messages) => {
     const session = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
-      messages
+      messages,
+      ...metadata
     };
     if (!users[userIndex].chatHistory) users[userIndex].chatHistory = [];
     users[userIndex].chatHistory.push(session);
@@ -157,6 +159,47 @@ export const saveChatSession = async (userId, messages) => {
     if (currentUser && currentUser.id === userId) {
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(users[userIndex]));
     }
+    return session.id;
   }
+  return null;
+};
+
+// Update an existing chat session or create if it doesn't exist
+export const updateChatSession = async (userId, sessionId, messages, metadata = {}) => {
+  const users = JSON.parse(localStorage.getItem(USERS_KEY));
+  const userIndex = users.findIndex(u => u.id === userId);
+  
+  if (userIndex !== -1) {
+    if (!users[userIndex].chatHistory) users[userIndex].chatHistory = [];
+    
+    const sessionIndex = users[userIndex].chatHistory.findIndex(s => s.id === sessionId);
+    
+    if (sessionIndex !== -1) {
+      // Update existing
+      users[userIndex].chatHistory[sessionIndex] = {
+        ...users[userIndex].chatHistory[sessionIndex],
+        messages,
+        ...metadata
+      };
+    } else {
+      // Create new
+      const session = {
+        id: sessionId || Date.now().toString(),
+        date: new Date().toISOString(),
+        messages,
+        ...metadata
+      };
+      users[userIndex].chatHistory.push(session);
+    }
+
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.id === userId) {
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(users[userIndex]));
+    }
+    return sessionId;
+  }
+  return null;
 };
 

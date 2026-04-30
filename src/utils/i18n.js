@@ -59,7 +59,33 @@ export const translations = {
     noRecentChats: "No recent chats yet",
     startNewSession: "Start a new session in your Invisible Journal to see it here.",
     
-    selfHelpDesc: "Visually rich, actionable steps to overcome a heavy mood."
+    selfHelpDesc: "Visually rich, actionable steps to overcome a heavy mood.",
+    
+    // Multimodal Additions
+    multimodalCheckIn: "Multimodal Check-In",
+    disableMultimodal: "Disable Multimodal Mode",
+    enableMultimodal: "Enable Multimodal Mode",
+    face: "Face",
+    voiceStress: "Voice Stress",
+    detecting: "Detecting...",
+    multimodalDisabledNote: "Camera & Mic disabled. Enable for multimodal empathy.",
+    privacyNote: "Analysis stays strictly in your browser. Video/Audio never leaves your device.",
+    
+    // Stress levels
+    stressLow: "Low",
+    stressMild: "Mild",
+    stressModerate: "Moderate",
+    stressHigh: "High",
+    stressSevere: "Severe",
+    
+    // Emotions
+    happy: "Happy",
+    sad: "Sad",
+    angry: "Angry",
+    fearful: "Fearful",
+    disgusted: "Disgusted",
+    surprised: "Surprised",
+    neutral: "Neutral"
   },
   hi: {
     welcome: "वापसी पर स्वागत है।",
@@ -118,7 +144,30 @@ export const translations = {
     noRecentChats: "अभी तक कोई हाल की बातचीत नहीं",
     startNewSession: "इसे यहां देखने के लिए अपने अदृश्य जर्नल में एक नया सत्र शुरू करें।",
     
-    selfHelpDesc: "भारी मनोदशा को दूर करने के लिए नेत्रहीन समृद्ध, कार्रवाई योग्य कदम।"
+    selfHelpDesc: "भारी मनोदशा को दूर करने के लिए नेत्रहीन समृद्ध, कार्रवाई योग्य कदम।",
+    
+    multimodalCheckIn: "मल्टीमॉडल चेक-इन",
+    disableMultimodal: "मल्टीमॉडल मोड अक्षम करें",
+    enableMultimodal: "मल्टीमॉडल मोड सक्षम करें",
+    face: "चेहरा",
+    voiceStress: "आवाज़ का तनाव",
+    detecting: "पता लगाया जा रहा है...",
+    multimodalDisabledNote: "कैमरा और माइक अक्षम। मल्टीमॉडल सहानुभूति के लिए सक्षम करें।",
+    privacyNote: "विश्लेषण केवल आपके ब्राउज़र में रहता है। वीडियो/ऑडियो आपके डिवाइस से कभी बाहर नहीं जाता है।",
+    
+    stressLow: "कम",
+    stressMild: "हल्का",
+    stressModerate: "मध्यम",
+    stressHigh: "उच्च",
+    stressSevere: "गंभीर",
+    
+    happy: "खुश",
+    sad: "उदास",
+    angry: "गुस्सा",
+    fearful: "डरा हुआ",
+    disgusted: "घृणित",
+    surprised: "आश्चर्यचकित",
+    neutral: "तटस्थ"
   },
   kn: {
     welcome: "ಮರಳಿ ಸ್ವಾಗತ.",
@@ -177,7 +226,30 @@ export const translations = {
     noRecentChats: "ಇತ್ತೀಚಿನ ಯಾವುದೇ ಚಾಟ್ಗಳಿಲ್ಲ",
     startNewSession: "ಅದನ್ನು ಇಲ್ಲಿ ನೋಡಲು ನಿಮ್ಮ ಅದೃಶ್ಯ ಜರ್ನಲ್ನಲ್ಲಿ ಹೊಸ ಸೆಷನ್ ಪ್ರಾರಂಭಿಸಿ.",
     
-    selfHelpDesc: "ಭಾರವಾದ ಮನಸ್ಥಿತಿಯನ್ನು ಹೋಗಲಾಡಿಸಲು ದೃಷ್ಟಿಗೋಚರವಾಗಿ ಸಮೃದ್ಧವಾದ, ಕಾರ್ಯಗತಗೊಳಿಸಬಹುದಾದ ಹಂತಗಳು."
+    selfHelpDesc: "ಭಾರವಾದ ಮನಸ್ಥಿತಿಯನ್ನು ಹೋಗಲಾಡಿಸಲು ದೃಷ್ಟಿಗೋಚರವಾಗಿ ಸಮೃದ್ಧವಾದ, ಕಾರ್ಯಗತಗೊಳಿಸಬಹುದಾದ ಹಂತಗಳು.",
+    
+    multimodalCheckIn: "ಮಲ್ಟಿಮೋಡಲ್ ಚೆಕ್-ಇನ್",
+    disableMultimodal: "ಮಲ್ಟಿಮೋಡಲ್ ಮೋಡ್ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ",
+    enableMultimodal: "ಮಲ್ಟಿಮೋಡಲ್ ಮೋಡ್ ಸಕ್ರಿಯಗೊಳಿಸಿ",
+    face: "ಮುಖ",
+    voiceStress: "ಧ್ವನಿ ಒತ್ತಡ",
+    detecting: "ಪತ್ತೆಹಚ್ಚಲಾಗುತ್ತಿದೆ...",
+    multimodalDisabledNote: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಮೈಕ್ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ. ಮಲ್ಟಿಮೋಡಲ್ ಸಹಾನುಭೂತಿಗಾಗಿ ಸಕ್ರಿಯಗೊಳಿಸಿ.",
+    privacyNote: "ವಿಶ್ಲೇಷಣೆ ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಮಾತ್ರ ಇರುತ್ತದೆ. ವೀಡಿಯೊ/ಆಡಿಯೊ ನಿಮ್ಮ ಸಾಧನದಿಂದ ಎಂದಿಗೂ ಹೊರಹೋಗುವುದಿಲ್ಲ.",
+    
+    stressLow: "ಕಡಿಮೆ",
+    stressMild: "ಸೌಮ್ಯ",
+    stressModerate: "ಮಧ್ಯಮ",
+    stressHigh: "ಹೆಚ್ಚು",
+    stressSevere: "ತೀವ್ರ",
+    
+    happy: "ಸಂತೋಷ",
+    sad: "ದುಃಖ",
+    angry: "ಕೋಪ",
+    fearful: "ಭಯಭೀತ",
+    disgusted: "ಅಸಹ್ಯ",
+    surprised: "ಆಶ್ಚರ್ಯ",
+    neutral: "ತಟಸ್ಥ"
   }
 };
 

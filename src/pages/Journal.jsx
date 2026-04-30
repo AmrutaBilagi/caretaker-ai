@@ -2,14 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Send, Phone, AlertTriangle, Save, Volume2, VolumeX } from 'lucide-react';
 import vader from 'vader-sentiment';
-import { saveChatSession, addMoodEntry } from '../utils/db';
+import { saveChatSession, addMoodEntry, updateChatSession } from '../utils/db';
 import { translateToSelectedLanguage, translateToEnglish } from '../utils/translations';
 import { useLanguage } from '../context/LanguageContext';
 import StayWithMeMode from '../components/StayWithMeMode';
 import { useNavigate } from 'react-router-dom';
+import { useMultimodalEmotion } from '../hooks/useMultimodalEmotion';
+import { MultimodalCheckInCard } from '../components/MultimodalCheckInCard';
+import { fuseMultimodalEmotion } from '../utils/emotionFusion';
 import './Journal.css';
 
-const SYSTEM_PROMPT = `You are an emotionally intelligent AI wellness assistant with text + voice emotion understanding. Detect the user’s mood from words, sentence style, typing pattern, and voice tone (stress, sadness, anger, anxiety, calmness, hopelessness, joy). Respond naturally, warmly, and differently every time. Never sound robotic, repetitive, generic, or scripted.
+const SYSTEM_PROMPT = `You are an emotionally intelligent AI wellness assistant with multimodal text + facial emotion understanding. Detect the user’s mood from words, sentence style, typing pattern, voice tone, and their current facial expression (if provided). Respond naturally, warmly, and differently every time. Never sound robotic, repetitive, generic, or scripted.
 
 ## Core Behavior
 * Understand hidden emotions behind text.
@@ -40,7 +43,7 @@ IMPORTANT: You MUST return ONLY a valid JSON object matching this schema:
 Where score is between -1.0 (extremely negative/crisis) and 1.0 (extremely positive). Do not return markdown, just the raw JSON object.`;
 
 // Expressive AI Generator with Keyword Matching (Fallback)
-const generateHeuristicResponse = (text, history) => {
+const generateHeuristicResponse = (text, history, multimodalContext = {}) => {
   const lowerText = text.toLowerCase();
   
   if (lowerText.match(/(suicide|kill myself|end it|want to die|can't go on|give up completely|no point in living)/)) {
@@ -51,6 +54,7 @@ const generateHeuristicResponse = (text, history) => {
     };
   }
 
+  const { faceEmotion, faceStressScore, textStressScore } = multimodalContext;
   const intensity = vader.SentimentIntensityAnalyzer.polarity_scores(text);
   const compound = intensity.compound;
 
@@ -66,8 +70,12 @@ const generateHeuristicResponse = (text, history) => {
   } else if (lowerText.includes('happy') || lowerText.includes('good') || lowerText.includes('relieved')) {
     selectedText = "I am so glad to hear that. Finding these moments of light and relief is what keeps us going. Hold onto this feeling, and be proud of yourself for navigating this journey. What made today feel a bit lighter for you?";
   } else {
-    // Fallback to VADER sentiment
-    if (compound >= 0.05) {
+    // Multimodal Fallback
+    if (faceStressScore > 0.8 && compound > -0.05 && compound < 0.05) {
+      selectedText = "You seem quite tense right now, even if your words are calm. Would you like to slow down and take a deep breath together? I am here for you.";
+    } else if (faceEmotion === 'sad' && compound > -0.05 && compound < 0.05) {
+      selectedText = "I sense a bit of sadness, even though your words are neutral. It's okay to not be okay. What is really weighing on your mind?";
+    } else if (compound >= 0.05) {
       selectedText = "It sounds like there's a gentle positivity in what you're saying. Cultivating these moments is so important for your own well-being. Tell me more about what's bringing you comfort right now.";
     } else if (compound <= -0.05) {
       selectedText = "I hear the heaviness in your words. The burden you carry is massive, and you don't have to be strong all the time. I'm right here with you. What is weighing on you the most right now?";
@@ -83,7 +91,7 @@ const generateHeuristicResponse = (text, history) => {
   return { crisis: false, text: selectedText, score: compound };
 };
 
-const generateGeminiResponse = async (text, apiKey, history) => {
+const generateGeminiResponse = async (text, multimodalContextString, apiKey, history, multimodalContext) => {
   try {
     const historyPrompt = history.length > 0 ? `\nPrevious conversation context:\n${history.join('\n')}` : '';
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -91,14 +99,15 @@ const generateGeminiResponse = async (text, apiKey, history) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ role: "user", parts: [{ text: text + historyPrompt }] }],
+        contents: [{ role: "user", parts: [{ text: multimodalContextString + text + historyPrompt }] }],
         generationConfig: { responseMimeType: "application/json" }
       })
     });
     
     const data = await response.json();
     if (data.candidates && data.candidates[0].content.parts[0].text) {
-      const jsonText = data.candidates[0].content.parts[0].text;
+      let jsonText = data.candidates[0].content.parts[0].text;
+      jsonText = jsonText.replace(/```json/gi, '').replace(/```/gi, '').trim();
       const parsed = JSON.parse(jsonText);
       return {
         text: parsed.text || "I'm here for you.",
@@ -109,7 +118,7 @@ const generateGeminiResponse = async (text, apiKey, history) => {
     throw new Error("Failed to parse Gemini response");
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return generateHeuristicResponse(text, history); // Fallback to heuristic
+    return generateHeuristicResponse(text, history, multimodalContext); // Fallback to heuristic
   }
 };
 
@@ -125,9 +134,17 @@ const Journal = ({ user, refreshUser }) => {
   const [crisisStage, setCrisisStage] = useState('none');
   const [micError, setMicError] = useState(false);
   const [useVoice, setUseVoice] = useState(true); // Voice Toggle
+  const [multimodalEnabled, setMultimodalEnabled] = useState(user?.preferences?.autoStartMultimodal || user?.preferences?.faceEmotionDetectionEnabled || false);
+  const multimodalContextData = useMultimodalEmotion(multimodalEnabled);
+  const { videoRef, isCameraOn, detectedEmotion, emotionConfidence, isListening, audioLevel, voiceStressScore, micError: hookMicError, getCurrentEmotionSnapshot } = multimodalContextData;
   const [responseHistory, setResponseHistory] = useState([]);
   const [sessionScore, setSessionScore] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
+  const [cumulativeTextStress, setCumulativeTextStress] = useState(0);
+  const [cumulativeFaceStress, setCumulativeFaceStress] = useState(0);
+  const [cumulativeVoiceStress, setCumulativeVoiceStress] = useState(0);
+  const [cumulativeFusedStress, setCumulativeFusedStress] = useState(0);
+  const [sessionId] = useState(Date.now().toString());
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -180,11 +197,37 @@ const Journal = ({ user, refreshUser }) => {
         return;
       }
       try {
+        recognitionRef.current.lang = selectedLanguage === 'hi' ? 'hi-IN' : selectedLanguage === 'kn' ? 'kn-IN' : 'en-US';
         recognitionRef.current.start();
         setIsRecording(true);
         setMicError(false);
       } catch (err) {
         console.error("Microphone start error:", err);
+      }
+    }
+  };
+
+  const toggleMultimodal = () => {
+    if (!multimodalEnabled) {
+      setMultimodalEnabled(true);
+      if (!isRecording && recognitionRef.current) {
+        try {
+          recognitionRef.current.lang = selectedLanguage === 'hi' ? 'hi-IN' : selectedLanguage === 'kn' ? 'kn-IN' : 'en-US';
+          recognitionRef.current.start();
+          setIsRecording(true);
+          setMicError(false);
+        } catch (err) {
+          console.error("Microphone start error:", err);
+        }
+      }
+    } else {
+      if (input.trim()) {
+        handleSend();
+      }
+      setMultimodalEnabled(false);
+      if (isRecording && recognitionRef.current) {
+        recognitionRef.current.stop();
+        setIsRecording(false);
       }
     }
   };
@@ -213,23 +256,63 @@ const Journal = ({ user, refreshUser }) => {
     setInput('');
     setMessages(prev => [...prev, { id: Date.now(), text: userText, sender: 'user' }]);
 
-    const apiKey = user?.preferences?.geminiApiKey;
+    const apiKey = user?.preferences?.geminiApiKey || 'AIzaSyCCDer6McuSdtr2nmlzjzkrVbQCA3hyyrg';
     let aiResponse;
     
-    // Translate the user's input to English so the bot can understand it and match heuristic/crisis keywords
     const englishUserText = await translateToEnglish(userText, selectedLanguage, apiKey);
     
-    if (apiKey) {
-      aiResponse = await generateGeminiResponse(englishUserText, apiKey, responseHistory);
+    let fusedScore = 0;
+    let currentTextStress = 0;
+    let currentFaceStress = 0;
+    let currentVoiceStress = 0;
+    let currentFusedStress = 0;
+    let fallbackContext = {};
+    
+    const snapshot = getCurrentEmotionSnapshot();
+    let fusionResult = null;
+
+    if (multimodalEnabled) {
+       fusionResult = fuseMultimodalEmotion(englishUserText, snapshot.face.detectedEmotion, snapshot.face.confidence, snapshot.voice);
+       currentTextStress = fusionResult.textStressScore;
+       currentFaceStress = fusionResult.faceStressScore;
+       currentVoiceStress = fusionResult.voiceStressScore || 0;
+       currentFusedStress = fusionResult.fusedStressScore;
+       fusedScore = (1 - fusionResult.fusedStressScore) * 2 - 1; // map 0-1 stress to 1 to -1 score
+       fallbackContext = {
+         faceEmotion: snapshot.face.detectedEmotion,
+         faceConfidence: snapshot.face.confidence,
+         textStressScore: currentTextStress,
+         faceStressScore: currentFaceStress,
+         voiceStressScore: currentVoiceStress,
+         fusedStressScore: currentFusedStress
+       };
     } else {
-      aiResponse = generateHeuristicResponse(englishUserText, responseHistory);
+       const intensity = vader.SentimentIntensityAnalyzer.polarity_scores(englishUserText);
+       fusedScore = intensity.compound;
+       currentTextStress = ((-intensity.compound) + 1) / 2; // map to 0-1 stress
+       currentFusedStress = currentTextStress;
+    }
+
+    setCumulativeTextStress(prev => prev + currentTextStress);
+    setCumulativeFaceStress(prev => prev + currentFaceStress);
+    setCumulativeVoiceStress(prev => prev + currentVoiceStress);
+    setCumulativeFusedStress(prev => prev + currentFusedStress);
+
+    const multimodalContextString = multimodalEnabled ? `[System Note: The user's current facial expression is detected as ${snapshot.face.detectedEmotion || 'neutral'} with ${Math.round((snapshot.face.confidence || 0) * 100)}% confidence. Voice stress is ${Math.round((snapshot.voice.stressScore || 0) * 100)}%. User's overall stress is assessed at ${Math.round(currentFusedStress * 100)}%. ${fusionResult?.isMasking ? 'CRITICAL: The user is likely masking negative emotions behind positive words.' : ''} ${fusionResult?.isSilentStruggle ? 'CRITICAL: The user is experiencing a silent struggle; their face/voice indicates high stress despite neutral words.' : ''}]\n` : '';
+    
+    if (apiKey) {
+      aiResponse = await generateGeminiResponse(englishUserText, multimodalContextString, apiKey, responseHistory, fallbackContext);
+      aiResponse.score = (aiResponse.score + fusedScore) / 2; // Average Gemini score and Fused score
+    } else {
+      aiResponse = generateHeuristicResponse(englishUserText, responseHistory, fallbackContext);
+      aiResponse.score = fusedScore;
     }
       
     setSessionScore(prev => prev + aiResponse.score);
     setMessageCount(prev => prev + 1);
 
     setResponseHistory(prev => {
-      const newHistory = [...prev, `User: ${userText}`, `AI: ${aiResponse.text}`];
+    const newHistory = [...prev, `User: ${userText}`, `AI: ${aiResponse.text}`];
       if (newHistory.length > 10) newHistory.shift();
       if (newHistory.length > 10) newHistory.shift();
       return newHistory;
@@ -238,7 +321,40 @@ const Journal = ({ user, refreshUser }) => {
     const translatedText = await translateToSelectedLanguage(aiResponse.text, selectedLanguage, apiKey);
     aiResponse.text = translatedText;
 
-    setMessages(prev => [...prev, { id: Date.now() + 1, text: translatedText, sender: 'ai' }]);
+    const newMessages = [...messages, 
+      { id: Date.now(), text: userText, sender: 'user' },
+      { id: Date.now() + 1, text: translatedText, sender: 'ai' }
+    ];
+    setMessages(newMessages);
+
+    // Save progressively to DB
+    const avgTextStress = (cumulativeTextStress + currentTextStress) / (messageCount + 1);
+    const avgFaceStress = (cumulativeFaceStress + currentFaceStress) / (messageCount + 1);
+    const avgVoiceStress = (cumulativeVoiceStress + currentVoiceStress) / (messageCount + 1);
+    const avgFusedStress = (cumulativeFusedStress + currentFusedStress) / (messageCount + 1);
+
+    const sessionSummary = {
+      avgTextScore: avgTextStress,
+      avgFaceStress: avgFaceStress,
+      avgVoiceStress: avgVoiceStress,
+      avgFusedStress: avgFusedStress,
+      dominantFaceEmotion: snapshot.face.detectedEmotion || null,
+      usedCamera: multimodalEnabled
+    };
+
+    const sessionMetadata = {
+      multimodal: multimodalEnabled,
+      faceEmotionUsed: multimodalEnabled && !!snapshot.face.detectedEmotion,
+      source: multimodalEnabled ? 'multimodal' : 'text',
+      faceEmotion: snapshot.face.detectedEmotion || null,
+      fusedStress: avgFusedStress,
+      textStress: avgTextStress,
+      faceStress: avgFaceStress,
+      voiceStress: avgVoiceStress,
+      sessionSummary
+    };
+    
+    updateChatSession(user.id, sessionId, newMessages, sessionMetadata);
     
     if (useVoice) {
       speakText(translatedText);
@@ -254,8 +370,34 @@ const Journal = ({ user, refreshUser }) => {
       const avgCompound = messageCount > 0 ? (sessionScore / messageCount) : 0;
       const moodScale = Math.round(((avgCompound + 1) / 2) * 4) + 1; // Maps 0-2 to 1-5
       
-      await saveChatSession(user.id, messages);
-      await addMoodEntry(user.id, moodScale);
+      const avgTextStress = messageCount > 0 ? (cumulativeTextStress / messageCount) : 0;
+      const avgFaceStress = messageCount > 0 ? (cumulativeFaceStress / messageCount) : 0;
+      const avgVoiceStress = messageCount > 0 ? (cumulativeVoiceStress / messageCount) : 0;
+      const avgFusedStress = messageCount > 0 ? (cumulativeFusedStress / messageCount) : 0;
+      
+      const sessionSummary = {
+        avgTextScore: avgTextStress,
+        avgFaceStress: avgFaceStress,
+        avgVoiceStress: avgVoiceStress,
+        avgFusedStress: avgFusedStress,
+        dominantFaceEmotion: detectedEmotion || null,
+        usedCamera: multimodalEnabled
+      };
+
+      const sessionMetadata = {
+        multimodal: multimodalEnabled,
+        faceEmotionUsed: multimodalEnabled && !!detectedEmotion,
+        source: multimodalEnabled && !!detectedEmotion ? 'multimodal' : 'text',
+        faceEmotion: detectedEmotion || null,
+        fusedStress: avgFusedStress,
+        textStress: avgTextStress,
+        faceStress: avgFaceStress,
+        voiceStress: avgVoiceStress,
+        sessionSummary
+      };
+
+      updateChatSession(user.id, sessionId, messages, sessionMetadata);
+      addMoodEntry(user.id, moodScale, sessionMetadata);
       
       if (refreshUser) refreshUser();
       
@@ -281,6 +423,13 @@ const Journal = ({ user, refreshUser }) => {
         </div>
         <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
           <button 
+            onClick={toggleMultimodal}
+            className="btn-secondary"
+            title={multimodalEnabled ? "Disable Multimodal" : "Enable Multimodal"}
+          >
+            {multimodalEnabled ? "Multimodal On" : "Multimodal Off"}
+          </button>
+          <button 
             onClick={() => setUseVoice(!useVoice)}
             className="btn-secondary" 
             title={useVoice ? "Mute AI Voice" : "Enable AI Voice"}
@@ -303,8 +452,23 @@ const Journal = ({ user, refreshUser }) => {
         )}
       </AnimatePresence>
 
-      <div className="chat-area">
-        <div className="messages-container">
+      <div className="chat-area relative">
+        <div className="messages-container relative">
+          {multimodalEnabled && (
+            <div className="absolute top-4 right-4 z-10 w-[90%] max-w-xs sm:w-80">
+               <MultimodalCheckInCard 
+                  videoRef={videoRef} 
+                  isCameraOn={isCameraOn}
+                  detectedEmotion={detectedEmotion} 
+                  emotionConfidence={emotionConfidence} 
+                  isListening={isListening}
+                  audioLevel={audioLevel}
+                  voiceStressScore={voiceStressScore}
+                  enabled={multimodalEnabled} 
+                  toggleEnabled={toggleMultimodal} 
+               />
+            </div>
+          )}
           {messages.map((msg) => (
             <motion.div 
               key={msg.id} 
