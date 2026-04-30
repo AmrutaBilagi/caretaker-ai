@@ -85,7 +85,17 @@ export const translations = {
     fearful: "Fearful",
     disgusted: "Disgusted",
     surprised: "Surprised",
-    neutral: "Neutral"
+    neutral: "Neutral",
+    
+    // Empathetic Feedback
+    feedbackHappy: "You look calm and relaxed.",
+    feedbackSad: "You seem a bit down today.",
+    feedbackAngry: "You seem quite stressed.",
+    feedbackFearful: "You seem anxious right now.",
+    feedbackDisgusted: "You seem displeased or stressed.",
+    feedbackSurprised: "You seem surprised.",
+    feedbackNeutral: "You seem focused and balanced.",
+    feedbackDetecting: "Tuning into your emotions..."
   },
   hi: {
     welcome: "वापसी पर स्वागत है।",
@@ -167,7 +177,17 @@ export const translations = {
     fearful: "डरा हुआ",
     disgusted: "घृणित",
     surprised: "आश्चर्यचकित",
-    neutral: "तटस्थ"
+    neutral: "तटस्थ",
+    
+    // Empathetic Feedback
+    feedbackHappy: "आप शांत और तनावमुक्त लग रहे हैं।",
+    feedbackSad: "आप आज थोड़े उदास लग रहे हैं।",
+    feedbackAngry: "आप काफी तनावग्रस्त लग रहे हैं।",
+    feedbackFearful: "आप अभी चिंतित लग रहे हैं।",
+    feedbackDisgusted: "आप अप्रसन्न या तनावग्रस्त लग रहे हैं।",
+    feedbackSurprised: "आप आश्चर्यचकित लग रहे हैं।",
+    feedbackNeutral: "आप केंद्रित और संतुलित लग रहे हैं।",
+    feedbackDetecting: "आपकी भावनाओं को समझ रहा हूँ..."
   },
   kn: {
     welcome: "ಮರಳಿ ಸ್ವಾಗತ.",
@@ -249,7 +269,17 @@ export const translations = {
     fearful: "ಭಯಭೀತ",
     disgusted: "ಅಸಹ್ಯ",
     surprised: "ಆಶ್ಚರ್ಯ",
-    neutral: "ತಟಸ್ಥ"
+    neutral: "ತಟಸ್ಥ",
+    
+    // Empathetic Feedback
+    feedbackHappy: "ನೀವು ಶಾಂತ ಮತ್ತು ನಿರಾಳರಾಗಿರುವಂತೆ ಕಾಣುತ್ತಿದ್ದೀರಿ.",
+    feedbackSad: "ನೀವು ಇಂದು ಸ್ವಲ್ಪ ದುಃಖಿತರಾಗಿದ್ದೀರಿ ಎಂದು ತೋರುತ್ತದೆ.",
+    feedbackAngry: "ನೀವು ಸಾಕಷ್ಟು ಒತ್ತಡದಲ್ಲಿರುವಂತೆ ಕಾಣುತ್ತಿದ್ದೀರಿ.",
+    feedbackFearful: "ನೀವು ಇದೀಗ ಆತಂಕದಲ್ಲಿರುವಂತೆ ತೋರುತ್ತಿದೆ.",
+    feedbackDisgusted: "ನೀವು ಅತೃಪ್ತಿ ಅಥವಾ ಒತ್ತಡದಲ್ಲಿರುವಂತೆ ಕಾಣುತ್ತಿದ್ದೀರಿ.",
+    feedbackSurprised: "ನೀವು ಆಶ್ಚರ್ಯಗೊಂಡಿದ್ದೀರಿ ಎಂದು ತೋರುತ್ತದೆ.",
+    feedbackNeutral: "ನೀವು ಕೇಂದ್ರೀಕೃತ ಮತ್ತು ಸಮತೋಲಿತರಾಗಿರುವಂತೆ ಕಾಣುತ್ತಿದ್ದೀರಿ.",
+    feedbackDetecting: "ನಿಮ್ಮ ಭಾವನೆಗಳನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತಿದ್ದೇನೆ..."
   }
 };
 

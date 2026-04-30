@@ -11,6 +11,7 @@ const Settings = ({ user, onLogout, refreshUser }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [language, setLanguage] = useState(user?.preferences?.language || 'en');
   const [caringFor, setCaringFor] = useState(user?.preferences?.caringFor || '');
+  const [theme, setTheme] = useState(user?.preferences?.theme || 'dark');
   const [ec1Name, setEc1Name] = useState(user?.preferences?.emergencyContacts?.[0]?.name || '');
   const [ec1Phone, setEc1Phone] = useState(user?.preferences?.emergencyContacts?.[0]?.phone || '');
   const [ec2Name, setEc2Name] = useState(user?.preferences?.emergencyContacts?.[1]?.name || '');
@@ -41,6 +42,7 @@ const Settings = ({ user, onLogout, refreshUser }) => {
       preferences: {
         ...user.preferences,
         language,
+        theme,
         caringFor,
         geminiApiKey,
         faceEmotionDetectionEnabled,
@@ -107,6 +109,22 @@ const Settings = ({ user, onLogout, refreshUser }) => {
           </div>
 
           <div style={{display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
+            
+            <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+              <Globe size={20} color="var(--accent-primary)" />
+              <div style={{flex: 1}}>
+                <p style={{margin: 0, fontWeight: 'bold'}}>Theme</p>
+                {isEditing ? (
+                  <select value={theme} onChange={e => setTheme(e.target.value)} style={{width: '100%', padding: '8px', borderRadius: '8px', marginTop: '4px', border: '1px solid #ccc', background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)'}}>
+                    <option value="dark" style={{color:'black'}}>Dark Mode</option>
+                    <option value="light" style={{color:'black'}}>Light Mode</option>
+                  </select>
+                ) : (
+                  <p style={{margin: 0, color: 'var(--text-secondary)'}}>{theme === 'light' ? 'Light Mode' : 'Dark Mode'}</p>
+                )}
+              </div>
+            </div>
+
             <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
               <Globe size={20} color="var(--accent-primary)" />
               <div style={{flex: 1}}>

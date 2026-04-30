@@ -100,6 +100,14 @@ function App() {
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    if (user?.preferences?.theme === 'light') {
+      document.documentElement.classList.add('light-theme');
+    } else {
+      document.documentElement.classList.remove('light-theme');
+    }
+  }, [user?.preferences?.theme]);
+
   const handleLogin = (loggedInUser) => {
     setUser(loggedInUser);
     setIsAuthenticated(true);
